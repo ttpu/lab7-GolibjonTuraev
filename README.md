@@ -10,7 +10,6 @@
 * Student 3: Golib,Torayev,14146
 
 * Student 4: Umar,Fayzulayev,se14108
-etc...
 
 ![image](https://github.com/user-attachments/assets/aded3d8a-1bd3-49ea-a69e-b3bd215e8077)
 
