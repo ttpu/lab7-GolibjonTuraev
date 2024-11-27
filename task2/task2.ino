@@ -1,132 +1,108 @@
 #include <WiFi.h>
-#include <HTTPClient.h>
-#include <Update.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
-const char* ssid = "xxxxxx";           // Your Wi-Fi SSID
-const char* password = "xxxxxxx";   // Your Wi-Fi Password
-
-const char* firmwareUrl = "https://xxxxxxxxxxxx.bin";  // URL to the .bin file
-const float currentVersion = 1.0;    // Current firmware version
-const char* versionUrl = "https://xxxxxxxxx";  // URL to version text file
+const char* ssid = "Mi 9 Lite";          // Replace with your Wi-Fi SSID
+const char* password = "345678912";  // Replace with your Wi-Fi Password
 
 
+// Define LED pins
+const int redLED = 4;
+const int greenLED = 5;
+const int yellowLED = 19;
+const int blueLED = 22;
+
+// Variables for polling (timers)
+unsigned long prevRedTime = 0;
+unsigned long prevGreenTime = 0;
+unsigned long prevYellowTime = 0;
+unsigned long prevBlueTime = 0;
+
+// Blink intervals (in milliseconds)
+const unsigned long redInterval = 1000;
+const unsigned long greenInterval = 500;
+const unsigned long yellowInterval = 3000;
+const unsigned long blueInterval = 5000;
 void setup() {
   Serial.begin(115200);
   Serial.println("Booting...");
 
-  // Connect to Wi-Fi
+    // Initialize LEDs
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  pinMode(yellowLED, OUTPUT);
+  pinMode(blueLED, OUTPUT);
+  
+  // Connect to your Wi-Fi network
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  // Wait for the connection to establish
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("WiFi Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
   }
-  Serial.println("");
-  Serial.println("Connected to WiFi");
 
-  // Check for updates on startup
-  checkForUpdates();
+  // Configure OTA
+  ArduinoOTA.setHostname("esp32-ota");   // Optional: Set a custom hostname
+  // ArduinoOTA.setPassword("admin");    // Optional: Set an OTA password
+
+  // OTA Event Handlers (Optional but recommended for debugging)
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start updating...");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nUpdate Complete!");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA Progress: %u%%\r", (progress * 100) / total);
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("OTA Error [%u]: ", error);
+    if      (error == OTA_AUTH_ERROR)    Serial.println("Authentication Failed");
+    else if (error == OTA_BEGIN_ERROR)   Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connection Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)     Serial.println("End Failed");
+  });
+
+  // Start the OTA service
+  ArduinoOTA.begin();
+
+  Serial.println("Ready for OTA updates.");
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+
 }
 
 void loop() {
-  // Your regular code here
-  // For example, periodically check for updates
-  static unsigned long lastCheck = 0;
-  const unsigned long interval = 10000;  // Check every hour (3600000 milliseconds)
+  // Handle OTA updates
+  ArduinoOTA.handle();
+  // Get current time
+  unsigned long currentMillis = millis();
 
-  if (millis() - lastCheck > interval) {
-    lastCheck = millis();
-    checkForUpdates();
+  // Polling for Red LED
+  if (currentMillis - prevRedTime >= redInterval) {
+    prevRedTime = currentMillis;
+    digitalWrite(redLED, !digitalRead(redLED)); // Toggle LED
   }
 
-}
-
-void checkForUpdates() {
-  Serial.println("Checking for firmware updates...");
-
-  HTTPClient http;
-
-  // Fetch the latest version number from the server
-  http.begin(versionUrl);
-  int httpCode = http.GET();
-
-  if (httpCode == HTTP_CODE_OK) {
-    String newVersionStr = http.getString();
-    newVersionStr.trim();  // Remove any whitespace or newline characters
-    float newVersion = newVersionStr.toFloat();
-
-    Serial.print("Current firmware version: ");
-    Serial.println(currentVersion, 2);
-    Serial.print("Available firmware version: ");
-    Serial.println(newVersion, 2);
-
-    if (newVersion > currentVersion) {
-      Serial.println("New firmware available. Starting update...");
-      http.end();  // Close the connection before proceeding
-      downloadAndUpdate();
-    } else {
-      Serial.println("Already on the latest version.");
-    }
-  } else {
-    Serial.print("Failed to check for updates. HTTP error code: ");
-    Serial.println(httpCode);
+  // Polling for Green LED
+  if (currentMillis - prevGreenTime >= greenInterval) {
+    prevGreenTime = currentMillis;
+    digitalWrite(greenLED, !digitalRead(greenLED)); // Toggle LED
   }
-  http.end();
-}
 
-void downloadAndUpdate() {
-  HTTPClient http;
-
-  // Begin downloading the new firmware
-  http.begin(firmwareUrl);
-  int httpCode = http.GET();
-
-  if (httpCode == HTTP_CODE_OK) {
-    int contentLength = http.getSize();
-
-    if (contentLength > 0) {
-      bool canBegin = Update.begin(contentLength);
-
-      if (canBegin) {
-        Serial.println("Beginning firmware update...");
-
-        WiFiClient* client = http.getStreamPtr();
-        size_t written = Update.writeStream(*client);
-
-        if (written == contentLength) {
-          Serial.println("Firmware update successfully written.");
-        } else {
-          Serial.print("Only ");
-          Serial.print(written);
-          Serial.print(" out of ");
-          Serial.print(contentLength);
-          Serial.println(" bytes were written. Update failed.");
-          http.end();
-          return;
-        }
-
-        if (Update.end()) {
-          Serial.println("Update finished successfully.");
-          if (Update.isFinished()) {
-            Serial.println("Update successfully completed. Rebooting...");
-            ESP.restart();
-          } else {
-            Serial.println("Update did not complete. Something went wrong.");
-          }
-        } else {
-          Serial.print("Error Occurred. Error #: ");
-          Serial.println(Update.getError());
-        }
-      } else {
-        Serial.println("Not enough space to begin OTA update.");
-      }
-    } else {
-      Serial.println("Content length is not valid.");
-    }
-  } else {
-    Serial.print("Failed to download firmware. HTTP error code: ");
-    Serial.println(httpCode);
+  // Polling for Yellow LED
+  if (currentMillis - prevYellowTime >= yellowInterval) {
+    prevYellowTime = currentMillis;
+    digitalWrite(yellowLED, !digitalRead(yellowLED)); // Toggle LED
   }
-  http.end();
+
+  // Polling for Blue LED
+  if (currentMillis - prevBlueTime >= blueInterval) {
+    prevBlueTime = currentMillis;
+    digitalWrite(blueLED, !digitalRead(blueLED)); // Toggle LED
+  }
 }
