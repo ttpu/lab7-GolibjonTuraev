@@ -1,12 +1,15 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/YA0UV1r_)
 # Lab 7 - IoT 2024
 
-## Team N:
+## Team N: General Motors
 
-* Student 1: name,surname,id
+* Student 1: Ayubxon,Koriev,se14329
 
-* Student 2: name,surname,id
+* Student 2: Irodaxon,Roziyeva,se13385
 
+* Student 3: Golib,Torayev,14146
+
+* Student 4: Umar,Fayzulayev,se
 etc...
 
 ![image](https://github.com/user-attachments/assets/aded3d8a-1bd3-49ea-a69e-b3bd215e8077)
