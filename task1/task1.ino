@@ -2,13 +2,37 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-const char* ssid = "xxxxxx";          // Replace with your Wi-Fi SSID
-const char* password = "xxxxxx";  // Replace with your Wi-Fi Password
+const char* ssid = "Mi 9 Lite";          // Replace with your Wi-Fi SSID
+const char* password = "345678912";  // Replace with your Wi-Fi Password
 
+
+// Define LED pins
+const int redLED = 4;
+const int greenLED = 5;
+const int yellowLED = 19;
+const int blueLED = 22;
+
+// Variables for polling (timers)
+unsigned long prevRedTime = 0;
+unsigned long prevGreenTime = 0;
+unsigned long prevYellowTime = 0;
+unsigned long prevBlueTime = 0;
+
+// Blink intervals (in milliseconds)
+const unsigned long redInterval = 800;
+const unsigned long greenInterval = 650;
+const unsigned long yellowInterval = 2350;
+const unsigned long blueInterval = 3450;
 void setup() {
   Serial.begin(115200);
   Serial.println("Booting...");
 
+    // Initialize LEDs
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  pinMode(yellowLED, OUTPUT);
+  pinMode(blueLED, OUTPUT);
+  
   // Connect to your Wi-Fi network
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -55,4 +79,30 @@ void setup() {
 void loop() {
   // Handle OTA updates
   ArduinoOTA.handle();
+  // Get current time
+  unsigned long currentMillis = millis();
+
+  // Polling for Red LED
+  if (currentMillis - prevRedTime >= redInterval) {
+    prevRedTime = currentMillis;
+    digitalWrite(redLED, !digitalRead(redLED)); // Toggle LED
+  }
+
+  // Polling for Green LED
+  if (currentMillis - prevGreenTime >= greenInterval) {
+    prevGreenTime = currentMillis;
+    digitalWrite(greenLED, !digitalRead(greenLED)); // Toggle LED
+  }
+
+  // Polling for Yellow LED
+  if (currentMillis - prevYellowTime >= yellowInterval) {
+    prevYellowTime = currentMillis;
+    digitalWrite(yellowLED, !digitalRead(yellowLED)); // Toggle LED
+  }
+
+  // Polling for Blue LED
+  if (currentMillis - prevBlueTime >= blueInterval) {
+    prevBlueTime = currentMillis;
+    digitalWrite(blueLED, !digitalRead(blueLED)); // Toggle LED
+  }
 }
